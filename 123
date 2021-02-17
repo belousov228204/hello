@@ -1,0 +1,162 @@
+import pygame
+import random
+
+pygame.init()
+size = 1000, 1000
+screen = pygame.display.set_mode(size)
+clock = pygame.time.Clock()
+
+
+class Board:
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.left = 10
+        self.top = 10
+        self.cell_size = 30
+
+    def set_view(self, left, top, cell_size):
+        self.left = left
+        self.top = top
+        self.cell_size = cell_size
+
+    def render(self):
+        for i in range(self.height):
+            for j in range(self.width):
+                pygame.draw.rect(screen, (255, 255, 255),
+                                 (j * self.cell_size + self.left, i * self.cell_size + self.top, self.cell_size,
+                                  self.cell_size), 1)
+
+    def on_click(self, cell):
+        pass
+
+    def get_cell(self, mouse_pos):
+        s = (mouse_pos[0] - self.left) // self.cell_size
+        d = (mouse_pos[1] - self.top) // self.cell_size
+        if (s > self.width - 1 or d > self.height - 1) or (s < 0 or d < 0):
+            return None
+        return (s, d)
+
+    def get_click(self, mouse_pos):
+        cell = self.get_cell(mouse_pos)
+        if cell:
+            self.on_click(cell)
+        return self.on_click(cell)
+
+
+class Button:
+    def create_button(self):
+        surface = self.draw_button(screen, (225, 225, 225), 100, 80, 0, 930, 0)
+        surface = self.write_text(screen, '123', (0, 0, 0), 100, 80, 0, 930)
+        self.rect = pygame.Rect(0, 930, 80, 80)
+        return screen
+
+    def write_text(self, surface, text, text_color, length, height, x, y):
+        font_size = int(length//len(text))
+        myFont = pygame.font.SysFont("Calibri", font_size)
+        myText = myFont.render(text, 1, text_color)
+        surface.blit(myText, ((x+length/2) - myText.get_width()/2, (y+height/2) - myText.get_height()/2))
+        return surface
+
+    def draw_button(self, surface, color, length, height, x, y, width):
+        for i in range(1, 10):
+            s = pygame.Surface((length+(i*2),height+(i*2)))
+            s.fill(color)
+            alpha = (255/(i+2))
+            if alpha <= 0:
+                alpha = 1
+            s.set_alpha(alpha)
+            pygame.draw.rect(s, color, (x - i, y - i, length + i, height + i), width)
+            surface.blit(s, (x - i, y - i))
+        pygame.draw.rect(surface, color, (x, y, length, height), 0)
+        pygame.draw.rect(surface, (190, 190, 190), (x, y, length, height), 1)
+        return surface
+
+    def pressed(self, mouse):
+        if mouse[0] > self.rect.topleft[0]:
+            if mouse[1] > self.rect.topleft[1]:
+                if mouse[0] < self.rect.bottomright[0]:
+                    if mouse[1] < self.rect.bottomright[1]:
+                        return True
+                    else:
+                        return False
+                else:
+                    return False
+            else:
+                return False
+        else:
+            return False
+
+
+class Saper(Board):
+    def __init__(self, width, height, n):
+        super().__init__(width, height)
+        i = 0
+        self.board = [[-1] * width for _ in range(height)]
+        while i < n:
+            x = random.randint(0, self.width - 1)
+            y = random.randint(0, self.height - 1)
+            if self.board[y][x] == -1:
+                self.board[y][x] = 10
+                i += 1
+
+    def open_cell(self, cell):
+        x, y = cell
+        if self.board[y][x] == 10:
+            return 12
+
+        s = 0
+        for i in range(-1, 2):
+            for j in range(-1, 2):
+                if x + j < 0 or x + j >= self.width or y + i < 0 or y + i >= self.height:
+                    continue
+                if self.board[y + i][x + j] == 10:
+                    s += 1
+        self.board[y][x] = s
+
+    def on_click(self, cell):
+        self.open_cell(cell)
+        return self.open_cell(cell)
+
+    def render(self):
+        for i in range(self.height):
+            for j in range(self.width):
+                if self.board[i][j] == 10:
+                    pygame.draw.rect(screen, pygame.Color('black'),
+                                     (j * self.cell_size + self.left, i * self.cell_size + self.top, self.cell_size,
+                                     self.cell_size))
+                if self.board[i][j] >= 0 and self.board[i][j] != 10:
+                    font = pygame.font.Font(None, self.cell_size - 6)
+                    text = font.render(str(self.board[i][j]), 1, (100, 255, 100))
+                    screen.blit(text, (j * self.cell_size + self.left + 3, i * self.cell_size + self.top + 3))
+
+                pygame.draw.rect(screen, pygame.Color(255, 255, 255),
+                                 (j * self.cell_size + self.left, i * self.cell_size + self.top, self.cell_size,
+                                     self.cell_size), 1)
+
+
+board = Saper(10, 15, 10)
+board.set_view(10, 10, 30)
+button = Button()
+
+time_on = False
+ticks = 0
+
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            board.get_click(event.pos)
+            if board.get_click(event.pos) == 12:
+                running = False
+
+    screen.fill([0, 0, 0])
+    board.render()
+
+    pygame.display.flip()
+    clock.tick(50)
+    ticks += 1
+
+pygame.quit()
