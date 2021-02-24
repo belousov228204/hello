@@ -59,7 +59,10 @@ class Saper(Board):
         self.w = 0
 
     def open_cell(self, cell):
-        x, y = cell
+        try:
+            x, y = cell
+        except TypeError:
+            return 
         if self.board[y][x] == 10:
             return 12
 
@@ -73,7 +76,6 @@ class Saper(Board):
         if self.board[y][x] == -1:
             self.w += 1
         self.board[y][x] = s
-
 
     def on_click(self, cell):
         self.open_cell(cell)
@@ -96,16 +98,30 @@ class Saper(Board):
                                   self.cell_size), 1)
         if self.w == self.width * self.height - self.n:
             font = pygame.font.Font(None, 36)
-            text = font.render('U WIN!5555' + str(self.w), 1, (100, 255, 100))
+            text = font.render('U WIN!5555', 1, (100, 255, 100))
             screen.blit(text, (250, 750))
+
+
+class Mouse:
+    def __init__(self, x, y):
+        self.image = pygame.image.load("arrow.png")
+        self.x = x 
+        self.y = y
+
+    def render(self):
+        if x == -1 or pygame.mouse.get_focused() == False:
+            return
+        screen.blit(self.image, (self.x, self.y))
 
 
 board = Saper(10, 15, 10)
 board.set_view(10, 10, 30)
+mouse1 = Mouse(-1, -1)
+
 
 time_on = False
 ticks = 0
-
+pygame.mouse.set_visible(False)
 running = True
 while running:
     for event in pygame.event.get():
@@ -115,9 +131,16 @@ while running:
             board.get_click(event.pos)
             if board.get_click(event.pos) == 12:
                 running = False
+        if event.type == pygame.MOUSEMOTION:
+            x, y = event.pos
+            mouse1 = Mouse(x, y)
+            
+            print(event.pos)
+            
 
     screen.fill([0, 0, 0])
     board.render()
+    mouse1.render()
 
     pygame.display.flip()
     clock.tick(50)
